@@ -179,6 +179,18 @@ macro_rules! dbus_class {
                 for _ in class.run(&connection, connection.iter(1000)) {
                 }
             }
+
+            pub fn register_class<P>(&self, bus_name: &str, connection: &dbus::Connection, path: P)  where P: Into<dbus::Path<'static>> {
+                connection.register_name(bus_name, dbus::NameFlag::ReplaceExisting as u32).unwrap();
+
+                let factory = dbus::tree::Factory::new_fn::<()>();
+                let class = factory.tree(()).add(factory.object_path(path, ()).introspectable().add({
+                    let interface = factory.interface($interface_name, ());
+                    dbus_functions!(self, factory, interface, $($functions)*);
+                    interface
+                }));
+                class.set_registered(&connection, true).unwrap();
+            }
         }
     };
 }
